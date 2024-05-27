@@ -1,13 +1,14 @@
 package com.detrasoft.framework.crud.entities;
 
 import javax.persistence.MappedSuperclass;
+import java.util.UUID;
 
 @MappedSuperclass
 public abstract class GenericEntity {
 	
-	public abstract Long getId();
+	public abstract UUID getId();
 	
-	public abstract void setId(Long id);
+	public abstract void setId(UUID id);
 
 	public GenericEntity() {
 

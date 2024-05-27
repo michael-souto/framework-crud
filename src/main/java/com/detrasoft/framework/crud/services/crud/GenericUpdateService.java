@@ -7,12 +7,13 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
+import java.util.UUID;
 
 public class GenericUpdateService<Entity extends GenericEntity> {
 
     protected GenericCRUDRepository<Entity> repository;
     @Transactional
-    public Entity update(Long id, Entity entity) {
+    public Entity update(UUID id, Entity entity) {
         try {
             Entity entityFinded = repository.getReferenceById(id);
             BeanUtils.copyProperties(entity, entityFinded);

@@ -16,6 +16,7 @@ import javax.persistence.EntityNotFoundException;
 import javax.validation.Valid;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
+import java.util.UUID;
 
 @Validated
 public class GenericCRUDService<Entity extends GenericEntity> {
@@ -32,7 +33,7 @@ public class GenericCRUDService<Entity extends GenericEntity> {
     }
 
     @Transactional(readOnly = true)
-    public Entity findById(Long id) {
+    public Entity findById(UUID id) {
         return repository.findById(id).orElseThrow(() -> new ResourceNotFoundException(id));
     }
 
@@ -46,7 +47,7 @@ public class GenericCRUDService<Entity extends GenericEntity> {
     }
 
     @Transactional
-    public Entity update(Long id,@Valid Entity entity) {
+    public Entity update(UUID id,@Valid Entity entity) {
         try {
             Entity entityFinded = repository.getReferenceById(id);
             BeanUtils.copyProperties(entity, entityFinded);
@@ -62,7 +63,7 @@ public class GenericCRUDService<Entity extends GenericEntity> {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(UUID id) {
         try {
             var entity = findById(id);
             repository.delete(entity);
