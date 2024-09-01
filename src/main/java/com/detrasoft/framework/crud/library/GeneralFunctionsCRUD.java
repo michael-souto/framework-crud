@@ -1,11 +1,11 @@
 package com.detrasoft.framework.crud.library;
 
 import com.detrasoft.framework.crud.entities.GenericEntity;
-import org.hibernate.collection.internal.PersistentBag;
+import org.hibernate.collection.spi.PersistentBag;
 
-import javax.persistence.ManyToMany;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 

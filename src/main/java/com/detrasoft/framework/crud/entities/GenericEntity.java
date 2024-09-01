@@ -1,6 +1,6 @@
 package com.detrasoft.framework.crud.entities;
 
-import javax.persistence.MappedSuperclass;
+import jakarta.persistence.MappedSuperclass;
 import java.util.UUID;
 
 @MappedSuperclass

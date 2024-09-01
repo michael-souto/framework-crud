@@ -6,7 +6,7 @@ import com.detrasoft.framework.crud.services.exceptions.ResourceNotFoundExceptio
 import org.springframework.beans.BeanUtils;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
 import java.util.UUID;
 
 public class GenericUpdateService<Entity extends GenericEntity> {

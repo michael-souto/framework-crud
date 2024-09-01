@@ -12,8 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import javax.persistence.EntityNotFoundException;
-import javax.validation.Valid;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.util.UUID;
@@ -50,7 +50,7 @@ public class GenericCRUDService<Entity extends GenericEntity> {
     public Entity update(UUID id,@Valid Entity entity) {
         try {
             Entity entityFinded = repository.getReferenceById(id);
-            BeanUtils.copyProperties(entity, entityFinded);
+            copyProperties(entity, entityFinded);
             beforeUpdate(entityFinded);
             entityFinded = repository.save(entityFinded);
             repository.flush();
@@ -98,4 +98,8 @@ public class GenericCRUDService<Entity extends GenericEntity> {
     // Delete
     protected void beforeDelete(Entity entity) {}
     protected void afterDelete(Entity entity) {}
+
+    protected void copyProperties(Object source, Object target, String... ignoreProperties){
+        BeanUtils.copyProperties(source, target, ignoreProperties);
+    }
 }
