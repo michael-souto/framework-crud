@@ -71,6 +71,7 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
             generateMessage(entity, CodeMessages.SUCCESS_UPDATING);
             return entityFinded;
         } catch (Exception e) {
+            e.printStackTrace();
             Throwable rootCause = getRootCause(e);
             if (rootCause instanceof EntityNotFoundException) {
                 throw new ResourceNotFoundException(id);
