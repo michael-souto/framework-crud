@@ -1,5 +1,6 @@
 package com.detrasoft.framework.crud.services.crud;
 
+import com.detrasoft.framework.core.library.GeneralFunctionsCore;
 import com.detrasoft.framework.core.notification.Message;
 import com.detrasoft.framework.core.notification.MessageType;
 import com.detrasoft.framework.core.resource.Translator;
@@ -15,6 +16,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
@@ -43,8 +45,23 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
     }
 
     @Transactional(readOnly = true)
+    public Page<Entity> findAllPaged(Specification<Entity> specs, Pageable pageable) {
+        return repository.findAll(specs, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Entity> findAll(Specification<Entity> specs) {
+        return repository.findAll(specs);
+    }
+
+    @Transactional(readOnly = true)
     public Entity findById(UUID id) {
         return repository.findById(id).orElseThrow(() -> new ResourceNotFoundException(id));
+    }
+
+    @Transactional(readOnly = true)
+    public Entity findByOne(Specification<Entity> specs) {
+        return repository.findOne(specs).get();
     }
 
     @Transactional
@@ -62,6 +79,7 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
     public Entity update(UUID id,@Valid Entity entity) {
         try {
             clearMessages();
+            beforeInitUpdate(entity);
             Entity entityFinded = findById(id);
             copyProperties(entity, entityFinded);
             beforeUpdate(entityFinded);
@@ -116,7 +134,7 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
     }
     
     protected void generateMessage(Entity entity, CodeMessages code){
-        String nameEntity = Translator.getTranslatedText(entity.getClass().getSimpleName(), true);
+        String nameEntity = Translator.getTranslatedText(GeneralFunctionsCore.formatCamelCase(entity.getClass().getSimpleName()));
         addMessageTranslated(code, nameEntity, MessageType.success, nameEntity);
     }
 
@@ -125,6 +143,7 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
     protected void afterInsert(Entity entity) {}
     // Update
     protected void beforeUpdate(Entity entity) {}
+    protected void beforeInitUpdate(Entity entity) {}
     protected void afterUpdate(Entity entity) {}
     // Delete
     protected void beforeDelete(Entity entity) {}
