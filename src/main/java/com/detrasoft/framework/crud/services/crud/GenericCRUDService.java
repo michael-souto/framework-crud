@@ -9,6 +9,7 @@ import com.detrasoft.framework.crud.entities.GenericEntity;
 import com.detrasoft.framework.crud.repositories.GenericCRUDRepository;
 import com.detrasoft.framework.crud.services.exceptions.DatabaseException;
 import com.detrasoft.framework.crud.services.exceptions.ResourceNotFoundException;
+import com.detrasoft.framework.crud.services.exceptions.IdentifierNotProvidedForUpgrading;
 import com.detrasoft.framework.enums.CodeMessages;
 
 import org.springframework.beans.BeanUtils;
@@ -93,6 +94,30 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
             Throwable rootCause = getRootCause(e);
             if (rootCause instanceof EntityNotFoundException) {
                 throw new ResourceNotFoundException(id);
+            }
+            throw e;
+        }
+    }
+
+    @Transactional
+    public Entity update(@Valid Entity entity) {
+        try {
+            if (entity.getId() == null) {
+                throw new IdentifierNotProvidedForUpgrading(entity.getId());
+            }
+            clearMessages();
+            beforeInitUpdate(entity);
+            beforeUpdate(entity);
+            entity = repository.save(entity);
+            repository.flush();
+            afterUpdate(entity);
+            generateMessage(entity, CodeMessages.SUCCESS_UPDATING);
+            return entity;
+        } catch (Exception e) {
+            e.printStackTrace();
+            Throwable rootCause = getRootCause(e);
+            if (rootCause instanceof EntityNotFoundException) {
+                throw new ResourceNotFoundException(entity.getId());
             }
             throw e;
         }
