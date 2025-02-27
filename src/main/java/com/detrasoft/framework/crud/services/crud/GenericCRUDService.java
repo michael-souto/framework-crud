@@ -128,8 +128,10 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
         try {
             clearMessages();
             var entity = findById(id);
+            beforeDelete(entity);
             repository.delete(entity);
             repository.flush();
+            afterDelete(entity);
             generateMessage(entity, CodeMessages.SUCCESS_DELETING);
         }
         catch (EmptyResultDataAccessException e) {
