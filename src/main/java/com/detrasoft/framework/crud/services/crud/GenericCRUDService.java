@@ -187,6 +187,7 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
 
 	public List<Entity> importList(List<Entity> entities, RequestImportDTO.Operation operation, List<String> keys) {
 		List<Entity> listResult = new ArrayList<>();
+		var messagesProcess = new ArrayList<Message>();
 		for (Entity entity : entities) {
 			try {
 				if (operation.equals(RequestImportDTO.Operation.UPDATE)
@@ -214,7 +215,7 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
 							listResult.add(response);
 						}
 					} catch (Exception e) {
-						messages.add(Message.builder()
+						messagesProcess.add(Message.builder()
 							.type(MessageType.error)
 							.description(e.getMessage())
 							.build());
@@ -225,8 +226,13 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
 				}
 			} catch (IllegalArgumentException | SecurityException e) {
 				e.printStackTrace();
+				messagesProcess.add(Message.builder()
+					.type(MessageType.error)
+					.description(e.getMessage())
+					.build());
 			}
 		}
+		this.messages.addAll(messagesProcess);
 		return listResult;
 	}
 	
