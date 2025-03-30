@@ -10,6 +10,7 @@ import com.detrasoft.framework.crud.entities.GenericEntity;
 import com.detrasoft.framework.crud.repositories.GenericCRUDRepository;
 import com.detrasoft.framework.crud.repositories.SearchRepository;
 import com.detrasoft.framework.crud.services.exceptions.DatabaseException;
+import com.detrasoft.framework.crud.services.exceptions.EntityValidationException;
 import com.detrasoft.framework.crud.services.exceptions.ResourceNotFoundException;
 import com.detrasoft.framework.crud.services.exceptions.IdentifierNotProvidedForUpgrading;
 import com.detrasoft.framework.enums.CodeMessages;
@@ -76,6 +77,9 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
     public Entity insert(@Valid Entity entity) {
         clearMessages();
         beforeInsert(entity);
+		if (hasFatalError()) {
+			throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"));
+		}
         entity = repository.save(entity);
         repository.flush();
         afterInsert(entity);
@@ -91,6 +95,9 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
             Entity entityFinded = findById(id);
             copyProperties(entity, entityFinded);
             beforeUpdate(entityFinded);
+			if (hasFatalError()) {
+				throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"));
+			}
             entityFinded = repository.save(entityFinded);
             repository.flush();
             afterUpdate(entityFinded);
@@ -115,6 +122,9 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
             clearMessages();
             beforeInitUpdate(entity);
             beforeUpdate(entity);
+			if (hasFatalError()) {
+				throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"));
+			}
             entity = repository.save(entity);
             repository.flush();
             afterUpdate(entity);
@@ -133,10 +143,15 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
     @Transactional
     public void delete(UUID id) {
         try {
-            clearMessages();
+			clearMessages();
             var entity = findById(id);
+			beforeDelete(entity);
+			if (hasFatalError()) {
+				throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"));
+			}
             repository.delete(entity);
             repository.flush();
+            afterDelete(entity);
             generateMessage(entity, CodeMessages.SUCCESS_DELETING);
         }
         catch (EmptyResultDataAccessException e) {
