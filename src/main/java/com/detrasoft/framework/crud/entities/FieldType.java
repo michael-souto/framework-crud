@@ -17,6 +17,7 @@ public enum FieldType {
 	
 	rangenumber,
 	rangedate,
+	rangedatetime,
 	rangecurrency,
 	
 	split,
