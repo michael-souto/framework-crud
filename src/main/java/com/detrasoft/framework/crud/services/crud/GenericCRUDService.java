@@ -78,7 +78,7 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
         clearMessages();
         beforeInsert(entity);
 		if (hasFatalError()) {
-			throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"));
+			throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"), getMessages());
 		}
         entity = repository.save(entity);
         repository.flush();
@@ -96,7 +96,7 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
             copyProperties(entity, entityFinded);
             beforeUpdate(entityFinded);
 			if (hasFatalError()) {
-				throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"));
+				throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"), getMessages());
 			}
             entityFinded = repository.save(entityFinded);
             repository.flush();
@@ -123,7 +123,7 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
             beforeInitUpdate(entity);
             beforeUpdate(entity);
 			if (hasFatalError()) {
-				throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"));
+				throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"), getMessages());
 			}
             entity = repository.save(entity);
             repository.flush();
@@ -147,7 +147,7 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
             var entity = findById(id);
 			beforeDelete(entity);
 			if (hasFatalError()) {
-				throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"));
+				throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"), getMessages());
 			}
             repository.delete(entity);
             repository.flush();
