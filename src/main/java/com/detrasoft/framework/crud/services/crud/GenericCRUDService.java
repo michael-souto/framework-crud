@@ -38,6 +38,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 
+@SuppressWarnings({"rawtypes", "unchecked"})
 @Validated
 public class GenericCRUDService<Entity extends GenericEntity> extends GenericService {
 
@@ -363,13 +364,13 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
 		}
 	}
 	
-    @SuppressWarnings("unchecked")
+
+
 	protected Class<?> getGenericClass() {
 		ParameterizedType type = (ParameterizedType) getClass().getGenericSuperclass();
 		return ((Class<Entity>) (type).getActualTypeArguments()[0]);
 	}
 
-	@SuppressWarnings("unchecked")
 	protected Object instantiateRootClass(Class<?> newClass) {
 		try {
 			if (newClass == null) {
@@ -382,7 +383,6 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	protected void instantiateProperties(Object entity) {
 		try {
 			Class<?> clazz = entity.getClass();
@@ -413,7 +413,6 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	protected void copyObject(Object source, Object destination) {
 		if (source == null || destination == null) {
 			throw new IllegalArgumentException("The parameters cannot be null");
@@ -464,7 +463,6 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	public void copyObject(Object source, Object destination, List<String> propertyNames) {
 		if (source == null || destination == null) {
 			throw new IllegalArgumentException("The parameters cannot be null");

@@ -21,6 +21,7 @@ import org.springframework.stereotype.Repository;
 
 import com.detrasoft.framework.crud.entities.GenericEntity;
 
+@SuppressWarnings({"null", "unchecked", "rawtypes"})
 @Repository
 public class SearchRepository {
 
@@ -37,12 +38,10 @@ public class SearchRepository {
 		return this.em.createNativeQuery(nativeQuery, classe).getResultList();
 	}
 
-	@SuppressWarnings("unchecked")
 	public List<Object[]> findNativeSQL(String nativeQuery) {
 		return this.em.createNativeQuery(nativeQuery).getResultList();
 	}
 
-	@SuppressWarnings("unchecked")
 	public List<Object[]> findNativeSQL(String nativeQuery, Pageable pageable) {
 		nativeQuery = nativeQuery + " LIMIT " + pageable.getPageSize() + " OFFSET "
 				+ pageable.getPageNumber() * pageable.getPageSize();
@@ -83,7 +82,6 @@ public class SearchRepository {
 		return ((Number) query.getSingleResult()).intValue();
 	}
 
-	@SuppressWarnings("rawtypes")
 	public String getSQLNativeCommand(Object entitySearch) {
 
 		String select = "", from = "", join = "", where = "", orderBy = "", columnId = "";
@@ -250,7 +248,6 @@ public class SearchRepository {
 
 	}
 
-	@SuppressWarnings("rawtypes")
 	public String getJPQLCommand(Object entitySearch) {
 		String select = "";
 		String from = "";
