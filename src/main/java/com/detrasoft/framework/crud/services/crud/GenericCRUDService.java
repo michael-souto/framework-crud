@@ -15,6 +15,7 @@ import com.detrasoft.framework.crud.services.exceptions.ResourceNotFoundExceptio
 import com.detrasoft.framework.crud.services.exceptions.IdentifierNotProvidedForUpgrading;
 import com.detrasoft.framework.enums.CodeMessages;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,6 +42,9 @@ import java.util.UUID;
 public class GenericCRUDService<Entity extends GenericEntity> extends GenericService {
 
     protected GenericCRUDRepository<Entity> repository;
+
+    @Autowired
+    protected ObjectMapper objectMapper;
 
     @Autowired
 	protected SearchRepository searchRepository;
@@ -169,6 +174,17 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
         }
     }
 
+    @Transactional
+    public void delete(List<Entity> entities) {
+        entities.forEach(entity -> {
+            try {
+                delete(entity.getId());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     public Entity newInstanceEntity() {
         Entity entity = null;
         try {
@@ -200,59 +216,153 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
         BeanUtils.copyProperties(source, target, ignoreProperties);
     }
 
-	public List<Entity> importList(List<Entity> entities, RequestImportDTO.Operation operation, List<String> keys) {
+	public List<Entity> importList(List<Entity> entities, RequestImportDTO<Entity> requestImport) {
 		List<Entity> listResult = new ArrayList<>();
 		var messagesProcess = new ArrayList<Message>();
-		for (Entity entity : entities) {
-			try {
-				if (operation.equals(RequestImportDTO.Operation.UPDATE)
-						|| operation.equals(RequestImportDTO.Operation.CREATE_OR_UPDATE)) {
-					Entity entitySearched = (Entity) instantiateRootClass(null);
-					instantiateProperties(entitySearched);
-					// Gera a query JPQL utilizando o novo método
-					var jpql = searchRepository.getJPQLCommand(entitySearched);
-					
-					if (keys != null && !keys.isEmpty()) {
-						copyObject(entity, entitySearched, keys);
-						jpql = searchRepository.getJPQLCommand(entitySearched);
-					}
-					
-					// Busca a entidade utilizando a query JPQL
-					var entitySaved = this.searchRepository.findJPQL(jpql, getGenericClass());
 		
-					try {
-						if (entitySaved != null && !entitySaved.isEmpty()) {
-							copyObject(entity, (Entity) entitySaved.get(0));
-							var response = update((Entity) entitySaved.get(0));
-							listResult.add(response);
-						} else if (operation.equals(RequestImportDTO.Operation.CREATE_OR_UPDATE)) {
-							var response = insert(entity);
-							listResult.add(response);
-						}
-					} catch (Exception e) {
-						messagesProcess.add(Message.builder()
-							.type(MessageType.error)
-							.description(e.getMessage())
-							.build());
-					}
-				} else if (operation.equals(RequestImportDTO.Operation.CREATE)) {
-					var response = insert(entity);
-					listResult.add(response);
+		for (int index = 0; index < entities.size(); index++) {
+			Entity entity = entities.get(index);
+			try {
+				Entity processedEntity = processEntity(entity, requestImport, index);
+				if (processedEntity != null) {
+					listResult.add(processedEntity);
 				}
 			} catch (IllegalArgumentException | SecurityException e) {
-				e.printStackTrace();
-				messagesProcess.add(Message.builder()
-					.type(MessageType.error)
-					.description(e.getMessage())
-					.build());
+				handleProcessingError(e, index, messagesProcess);
 			}
 		}
+		
 		this.messages.addAll(messagesProcess);
 		return listResult;
 	}
 	
+	private Entity processEntity(Entity entity, RequestImportDTO<Entity> requestImport, int index) {
+		RequestImportDTO.Operation operation = requestImport.getOperation();
+		
+		switch (operation) {
+			case CREATE:
+				return insert(entity);
+				
+			case UPDATE:
+			case CREATE_OR_UPDATE:
+				return processUpdateOrCreateUpdate(entity, requestImport, index);
+				
+			default:
+				return null;
+		}
+	}
+	
+	private Entity processUpdateOrCreateUpdate(Entity entity, RequestImportDTO<Entity> requestImport, int index) {
+		try {
+			if (!hasValidKeys(requestImport)) {
+				return handleNoKeys(entity, requestImport);
+			}
+			
+			Entity existingEntity = findExistingEntity(entity, requestImport);
+			
+			if (existingEntity != null) {
+				return updateExistingEntity(entity, existingEntity, requestImport);
+			} else {
+				return handleEntityNotFound(entity, requestImport);
+			}
+			
+		} catch (Exception e) {
+			handleProcessingError(e, index, new ArrayList<>());
+			return null;
+		}
+	}
+	
+	private boolean hasValidKeys(RequestImportDTO<Entity> requestImport) {
+		return requestImport.getKeys() != null && !requestImport.getKeys().isEmpty();
+	}
+	
+	private Entity handleNoKeys(Entity entity, RequestImportDTO<Entity> requestImport) {
+		if (requestImport.getOperation().equals(RequestImportDTO.Operation.CREATE_OR_UPDATE)) {
+			setComplementField(entity, requestImport);
+			return insert(entity);
+		}
+		return null;
+	}
+	
+	private Entity findExistingEntity(Entity entity, RequestImportDTO<Entity> requestImport) {
+		Entity entitySearched = createSearchEntity();
+		copyObject(entity, entitySearched, requestImport.getKeys());
+		
+		var jpqlKey = searchRepository.getJPQLCommand(entitySearched);
+		var jpqlEmpty = searchRepository.getJPQLCommand(createSearchEntity());
+		
+		if (jpqlKey.equals(jpqlEmpty)) {
+			return null; // Não há diferença na consulta, entidade não existe
+		}
+		
+		var foundEntities = this.searchRepository.findJPQL(jpqlKey, getGenericClass());
+		return (foundEntities != null && !foundEntities.isEmpty()) ? 
+			   (Entity) foundEntities.get(0) : null;
+	}
+	
+	private Entity createSearchEntity() {
+		Entity entitySearched = (Entity) instantiateRootClass(null);
+		instantiateProperties(entitySearched);
+		return entitySearched;
+	}
+	
+	private Entity updateExistingEntity(Entity entity, Entity existingEntity, RequestImportDTO<Entity> requestImport) {
+		copyObject(entity, existingEntity);
+		setComplementField(existingEntity, requestImport);
+		return update(existingEntity.getId(), existingEntity);
+	}
+	
+	private Entity handleEntityNotFound(Entity entity, RequestImportDTO<Entity> requestImport) {
+		if (requestImport.getOperation().equals(RequestImportDTO.Operation.CREATE_OR_UPDATE)) {
+			setComplementField(entity, requestImport);
+			return insert(entity);
+		}
+		return null;
+	}
+	
+	private void handleProcessingError(Exception e, int index, List<Message> messagesProcess) {
+		e.printStackTrace();
+		messagesProcess.add(Message.builder()
+			.type(MessageType.error)
+			.code(String.valueOf(index + 1))
+			.description(e.getMessage())
+			.build());
+	}
+	
 
+	protected void setComplementField(Entity entitySaved, RequestImportDTO<Entity> requestImport) {
+		if (requestImport.getComplementFieldName() != null && !requestImport.getComplementFieldName().isEmpty()) {
+			try {
+				String fieldName = requestImport.getComplementFieldName();
+				
+				// O valor que vem como um LinkedHashMap
+				Object mapValue = requestImport.getComplementFieldValue();
 
+				// Verifica se o valor é de fato um Map
+				if (mapValue instanceof LinkedHashMap) {
+					Field field = entitySaved.getClass().getDeclaredField(fieldName);
+					
+					// Pega o TIPO do campo da entidade (ex: ComplementoDTO.class)
+					Class<?> fieldType = field.getType();
+					
+					// Converte o Map para um objeto do tipo do campo
+					Object targetObject = objectMapper.convertValue(mapValue, fieldType);
+					
+					field.setAccessible(true);
+					field.set(entitySaved, targetObject);
+				} else {
+				   // Lógica antiga para valores simples (se necessário)
+				   Field field = entitySaved.getClass().getDeclaredField(fieldName);
+				   field.setAccessible(true);
+				   field.set(entitySaved, mapValue);
+				}
+
+			} catch (Exception e) { // Captura Exception mais genérica aqui
+				throw new IllegalArgumentException("Falha ao processar campo complementar '" + requestImport.getComplementFieldName() + "': " + e.getMessage(), e);
+			}
+		}
+	}
+	
     @SuppressWarnings("unchecked")
 	protected Class<?> getGenericClass() {
 		ParameterizedType type = (ParameterizedType) getClass().getGenericSuperclass();
