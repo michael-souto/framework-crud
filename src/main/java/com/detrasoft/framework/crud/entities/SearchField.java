@@ -14,6 +14,7 @@ public class SearchField {
 	private String field;
 	private String columnName;
 	private String where;
+	private boolean hidden;
 
 	private String subfield;
 	private FieldType type;
