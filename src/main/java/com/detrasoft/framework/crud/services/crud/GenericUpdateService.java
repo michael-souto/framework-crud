@@ -5,6 +5,7 @@ import com.detrasoft.framework.core.resource.Translator;
 import com.detrasoft.framework.core.service.GenericService;
 import com.detrasoft.framework.crud.entities.GenericEntity;
 import com.detrasoft.framework.crud.repositories.GenericCRUDRepository;
+import com.detrasoft.framework.crud.services.exceptions.EntityValidationException;
 import com.detrasoft.framework.crud.services.exceptions.ResourceNotFoundException;
 import com.detrasoft.framework.enums.CodeMessages;
 
@@ -24,6 +25,9 @@ public class GenericUpdateService<Entity extends GenericEntity> extends GenericS
             Entity entityFinded = repository.findById(id).orElseThrow(() -> new ResourceNotFoundException(id));
             copyProperties(entity, entityFinded);
             beforeUpdate(entity, entityFinded);
+            if (hasFatalError()) {
+                throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"), getMessages());
+            }
             entityFinded = repository.save(entityFinded);
             repository.flush();
             afterUpdate(entityFinded);
