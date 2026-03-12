@@ -28,7 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.validation.Valid;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -36,6 +38,7 @@ import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
@@ -49,6 +52,9 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
 
     @Autowired
 	protected SearchRepository searchRepository;
+
+	@Autowired
+	private Validator validator;
     
     public GenericCRUDService(GenericCRUDRepository<Entity> repository) {
         this.repository = repository;
@@ -80,9 +86,15 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
     }
 
     @Transactional
-    public Entity insert(@Valid Entity entity) {
+    public Entity insert(Entity entity) {
         clearMessages();
         beforeInsert(entity);
+
+		Set<ConstraintViolation<Entity>> violations = validator.validate(entity);
+		if (!violations.isEmpty()) {
+			throw new ConstraintViolationException(violations);
+		}
+
 		if (hasFatalError()) {
 			throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"), getMessages());
 		}
@@ -94,10 +106,16 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
     }
 
     @Transactional
-    public Entity update(UUID id,@Valid Entity entity) {
+    public Entity update(UUID id, Entity entity) {
         try {
             clearMessages();
             beforeInitUpdate(entity);
+
+			Set<ConstraintViolation<Entity>> violations = validator.validate(entity);
+			if (!violations.isEmpty()) {
+				throw new ConstraintViolationException(violations);
+			}
+
             Entity entityFinded = findById(id);
             copyProperties(entity, entityFinded);
             beforeUpdate(entityFinded);
@@ -120,13 +138,19 @@ public class GenericCRUDService<Entity extends GenericEntity> extends GenericSer
     }
 
     @Transactional
-    public Entity update(@Valid Entity entity) {
+    public Entity update(Entity entity) {
         try {
             if (entity.getId() == null) {
                 throw new IdentifierNotProvidedForUpgrading(entity.getId());
             }
             clearMessages();
             beforeInitUpdate(entity);
+			
+			Set<ConstraintViolation<Entity>> violations = validator.validate(entity);
+			if (!violations.isEmpty()) {
+				throw new ConstraintViolationException(violations);
+			}
+
             beforeUpdate(entity);
 			if (hasFatalError()) {
 				throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"), getMessages());

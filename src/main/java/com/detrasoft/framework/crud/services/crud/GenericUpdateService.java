@@ -10,14 +10,25 @@ import com.detrasoft.framework.crud.services.exceptions.ResourceNotFoundExceptio
 import com.detrasoft.framework.enums.CodeMessages;
 
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityNotFoundException;
+
+import java.util.Set;
 import java.util.UUID;
+
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
 
 public class GenericUpdateService<Entity extends GenericEntity> extends GenericService {
 
     protected GenericCRUDRepository<Entity> repository;
+    
+    @Autowired
+	private Validator validator;
+    
     @Transactional
     public Entity update(UUID id, Entity entity) {
         try {
@@ -25,6 +36,12 @@ public class GenericUpdateService<Entity extends GenericEntity> extends GenericS
             Entity entityFinded = repository.findById(id).orElseThrow(() -> new ResourceNotFoundException(id));
             copyProperties(entity, entityFinded);
             beforeUpdate(entity, entityFinded);
+
+            Set<ConstraintViolation<Entity>> violations = validator.validate(entity);
+			if (!violations.isEmpty()) {
+				throw new ConstraintViolationException(violations);
+			}
+
             if (hasFatalError()) {
                 throw new EntityValidationException(Translator.getTranslatedText("error.validation_exception"), getMessages());
             }
